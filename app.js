@@ -11,9 +11,9 @@ const citation='Tayo, R. C., & Yassa, S. (2026). ADARE: '+document.querySelector
 const positions=[
  ['2026 →','CY Tech','Teaching artificial intelligence to engineering students specialising in embedded systems.','Enseignement de l’intelligence artificielle aux élèves ingénieurs en systèmes embarqués.'],
  ['2026 →','Fujitsu / Neurones IT','Cloud and infrastructure engineering for client environments.','Ingénierie cloud et infrastructure pour des environnements clients.'],
- ['2025 – 2026','SUEZ Smart Solutions','Distributed agents on Azure, AKS and RabbitMQ, with Prometheus and Grafana for observability.','Agents distribués sur Azure, orchestration avec AKS et RabbitMQ, suivi avec Prometheus et Grafana.'],
- ['2021 – 2024','Alstom','Compute and cloud architecture apprenticeship. Provisioning Azure sandboxes with Terraform and Azure DevOps.','Apprentissage en architecture cloud. Déploiement d’environnements Azure avec Terraform et Azure DevOps.'],
- ['2016 – 2018 / 2025','3IAC / IUC → CY Tech','Preparatory studies in physics, chemistry and engineering sciences. Engineering degree from CY Tech in 2025.','Classes préparatoires en physique, chimie et sciences de l’ingénieur. Diplôme d’ingénieur de CY Tech en 2025.']
+ ['2025 - 2026','SUEZ Smart Solutions','Distributed agents on Azure, AKS and RabbitMQ, with Prometheus and Grafana for observability.','Agents distribués sur Azure, orchestration avec AKS et RabbitMQ, suivi avec Prometheus et Grafana.'],
+ ['2021 - 2024','Alstom','Compute and cloud architecture apprenticeship. Provisioning Azure sandboxes with Terraform and Azure DevOps.','Apprentissage en architecture cloud. Déploiement d’environnements Azure avec Terraform et Azure DevOps.'],
+ ['2016 - 2018 / 2025','3IAC / IUC → CY Tech','Preparatory studies in physics, chemistry and engineering sciences. Engineering degree from CY Tech in 2025.','Classes préparatoires en physique, chimie et sciences de l’ingénieur. Diplôme d’ingénieur de CY Tech en 2025.']
 ];
 const labs=[
  ['Physics','Physique','Where waves meet','Là où les ondes se rencontrent','Source separation','Écart des sources',0,8,3],
@@ -37,14 +37,14 @@ function render(){
  $('choose').textContent=tr('Choose a field to experiment with','Choisissez un domaine à explorer');
  updateLoopButton();
  $('subjects').setAttribute('aria-label',tr('Choose an experiment','Choisir une expérience'));
- $('subjects').replaceChildren(...labs.map((l,i)=>{const b=document.createElement('button');b.textContent=l[fr?1:0];b.setAttribute('aria-pressed',i===active);b.setAttribute('aria-controls','plot lesson');b.onclick=()=>{stopLab();active=i;render();$('subjects').children[i].focus()};return b}));
+ $('subjects').replaceChildren(...labs.map((l,i)=>{const b=document.createElement('button');b.textContent=l[fr?1:0];b.setAttribute('aria-pressed',i===active);b.setAttribute('aria-controls','plot lesson');b.onclick=()=>{labClock.reset();active=i;startLab();render();$('subjects').children[i].focus()};return b}));
  $('peer').textContent=tr('Peer-reviewed article','Article de recherche');$('paperBody').textContent=tr('A workflow can finish sooner on a faster machine and still lose time moving its inputs there. ADARE uses the state of the Pareto search to choose its next optimisation operator. The study considers four objectives and workflows of up to 3,000 tasks.','Une machine plus rapide peut faire gagner du temps sur le calcul et en perdre sur le transfert des données. ADARE utilise l’état de la recherche de Pareto pour choisir son prochain opérateur d’optimisation. L’étude porte sur quatre objectifs et des workflows allant jusqu’à 3 000 tâches.');
  $('paperLinks').innerHTML='<a href="'+doi+'">'+tr('Paper','Article')+' ↗</a><a href="'+archive+'">'+tr('Code & data','Code et données')+' ↗</a><button id="copy">'+tr('Copy citation','Copier la citation')+'</button><span id="feedback" role="status"></span>';
  $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(citation);$('feedback').textContent=tr('Copied.','Copiée.')}catch{$('feedback').textContent=citation}};
  $('projectsTitle').textContent=tr('Project notes','Carnet de projets');
  renderProjects();
  $('careerTitle').textContent=tr('Experience & education','Expérience et formation');$('career').innerHTML=positions.map(([date,org,en,f])=>'<div class="experience"><span class="date">'+date+'</span><div><h3>'+org+'</h3><p>'+tr(en,f)+'</p></div></div>').join('');
- const lab=labs[active];$('plate').textContent=tr('Experiment / ','Expérience / ')+lab[fr?1:0];$('instrumentTitle').textContent=lab[fr?3:2];$('parameter').textContent=lab[fr?5:4];Object.assign($('value'),{min:lab[6],max:lab[7],value:values[active]});draw();
+ const lab=labs[active];$('plate').textContent=tr('Experiment / ','Expérience / ')+lab[fr?1:0];$('instrumentTitle').textContent=lab[fr?3:2];$('parameter').textContent=lab[fr?5:4];draw();
 }
 $('lang').onclick=()=>{fr=!fr;remember('rct-language',fr?'fr':'en');render()};
 $('theme').onclick=()=>{light=!light;remember('rct-theme',light?'light':'dark');render()};
@@ -55,19 +55,17 @@ const labClock=animationClock(10000,phase=>{
  const u=((labOrigin-min)/span+2*phase)%2;
  const position=min+span*(1-Math.abs(1-u));
  values[active]=position;
- $('value').value=Math.round(position);
  draw();
 });
 function updateLoopButton(){
  $('loop').textContent=labClock.playing?tr('Ⅱ Pause','Ⅱ Pause'):tr('▷ Play on loop','▷ Lire en boucle');
  $('loop').setAttribute('aria-pressed',labClock.playing);
 }
-function stopLab(){labClock.reset();labOrigin=values[active];updateLoopButton()}
+function startLab(){labOrigin=values[active];labClock.toggle()}
 $('loop').onclick=()=>{
  if(labClock.phase===0&&!labClock.playing)labOrigin=values[active];
  labClock.toggle();updateLoopButton();
 };
-$('value').oninput=e=>{values[active]=Number(e.target.value);stopLab();draw()};
 
 function draw(){
  const canvas=$('plot'),ctx=canvas.getContext('2d'),css=getComputedStyle(document.documentElement);
@@ -83,7 +81,7 @@ function draw(){
   const point=(x,y)=>[400+33*x+16*y,189+7*y-4*x-height(x,y)*48];
   for(let j=-40;j<=40;j++){const y=j/5;const pts=[];for(let i=-100;i<=100;i++)pts.push(point(i/12,y));line(pts,j%5===0?accent:trace,j%5===0?1.6:.85)}
   reading='d = '+Number((position/2).toFixed(2))+' λ';
-  lesson=tr('Two in-phase point sources emit the same wave. Move them apart and follow the ridges. Where a crest meets a trough, the displacement cancels.','Deux sources en phase émettent la même onde. Éloignez-les et suivez les crêtes. Là où une crête rencontre un creux, les déplacements se compensent.');
+  lesson=tr('Two in-phase point sources emit the same wave. Follow the ridges as the sources move apart. Where a crest meets a trough, the displacement cancels.','Deux sources en phase émettent la même onde. Suivez les crêtes lorsque les sources s’écartent. Là où une crête rencontre un creux, les déplacements se compensent.');
  }else if(active===1){
   const n=2**v;const wave=x=>.5+.41*Math.sin(x*Math.PI*3.3-2*Math.PI*phase);const p=(x,y)=>[58+690*x,300-y*240];
   for(let k=0;k<=4;k++)line([p(0,k/4),p(1,k/4)],grid);
@@ -108,7 +106,7 @@ function draw(){
    const a=first.tasks[i],b=next.tasks[i],x=68+(a.start+(b.start-a.start)*mix)*scale,y=55+(a.lane+(b.lane-a.lane)*mix)*49;
    box(x,y,duration*scale-3,33,i%2?trace:accent);label(String.fromCharCode(65+i),x+10,y+23,color('bg'));
   });
-  label(tr('time →','temps →'),600,334);const end=mix<.5?first.end:next.end;lesson=tr('Six independent tasks go to the first free worker in letter order. Completion time is '+end+' ticks. Try four workers, then five. Which task sets the lower bound?','Six tâches indépendantes vont à la première unité libre, par ordre alphabétique. Durée totale : '+end+' unités de temps. Essayez quatre unités de calcul puis cinq. Quelle tâche fixe la borne inférieure ?');
+  label(tr('time →','temps →'),600,334);const end=mix<.5?first.end:next.end;lesson=tr('Six independent tasks go to the first free worker in letter order. Completion time is '+end+' ticks. Compare four workers with five. Which task sets the lower bound?','Six tâches indépendantes vont à la première unité libre, par ordre alphabétique. Durée totale : '+end+' unités de temps. Comparez quatre unités de calcul à cinq. Quelle tâche fixe la borne inférieure ?');
  }else if(active===3){
   for(let i=0;i<64;i++){const bit=((i*53+11)%67)%2,amount=Math.max(0,Math.min(1,position-(i*37)%64)),x=60+i%16*43,y=34+Math.floor(i/16)*71;
    box(x,y,34,22,bit?ink:grid);box(x,y+25,34,22,bit?ink:grid);box(x,y+25,34*amount,22,bit?grid:ink);box(x,y+49,34*amount,3,accent)}
@@ -122,6 +120,8 @@ function draw(){
   reading=v+' / 12';lesson=tr('A dot joins matching letters in two short teaching sequences. Read the orange diagonal: '+(12-v)+' aligned bases match. Green dots reveal repeated letters at other positions.','Un point relie deux lettres identiques dans ces courtes séquences pédagogiques. La diagonale orange compte '+(12-v)+' bases alignées identiques. Les points verts révèlent des répétitions à d’autres positions.');
  }
  if($('reading').textContent===reading&&$('lesson').textContent===lesson)return;
- $('reading').textContent=reading;$('lesson').textContent=lesson;canvas.setAttribute('aria-label',$('instrumentTitle').textContent+'. '+lesson);$('value').setAttribute('aria-valuetext',reading);
+ $('reading').textContent=reading;$('lesson').textContent=lesson;canvas.setAttribute('aria-label',$('instrumentTitle').textContent+'. '+lesson);
 }
+startLab();
+projectClocks.forEach(clock=>clock.toggle());
 render();

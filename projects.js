@@ -1,27 +1,19 @@
 // Each small diagram explains one operation using illustrative inputs.
 const projectNotes = [
  {name:'ax7L', field:['Executable representations · Selective access','Représentations exécutables · Accès sélectif'],
- text:['Which information is worth keeping close to the computation? One ax7L experiment compares compact codes for different query patterns. In this illustration the short path answers a familiar query; the longer path retrieves an exact answer from storage. The research measures a modelled cost on synthetic traces.','Quelles informations garder près du calcul ? Une expérience d’ax7L compare des codes compacts pour différents motifs de requêtes. Ici, le chemin court répond à une requête familière ; le chemin long récupère une réponse exacte en mémoire. La recherche mesure un coût modélisé sur des traces synthétiques.'],
- steps:[['Query the hot code','Read the cold store','Return the exact value'],['Interroger le code en cache','Lire la mémoire de repli','Renvoyer la valeur exacte']],
+ text:['Can several tasks share one compact set of executable rules? ax7L aims to find representations that reuse what tasks have in common, generalise to new examples and retrieve only the information a query needs. The animation illustrates this goal with two queries that share a rule and read different entries.','Plusieurs tâches peuvent-elles partager un petit ensemble de règles exécutables ? ax7L cherche une représentation qui réutilise ce que les tâches ont en commun, généralise à de nouveaux exemples et ne lit que les informations nécessaires à chaque requête. L’animation illustre ce but avec deux requêtes qui partagent une règle puis lisent des entrées différentes.'],
+ steps:[['Receive a query','Reuse the shared rule','Read the selected entry'],['Recevoir une requête','Réutiliser la règle commune','Lire l’entrée sélectionnée']],
  draw(g,t){
-  const path=t<1/3?[[20,60],[86,60],[139,33],[244,60]]:[[20,60],[86,60],[139,91],[201,91],[244,60]];
-  g.line([[20,60],[86,60],[139,33],[244,60]]);g.line([[86,60],[139,91],[201,91],[244,60]]);
-  g.label(tr('hot code','cache'),99,23);g.label(tr('exact store','mémoire exacte'),103,111);
-  g.travel(path,t<1/3?t*3:(t-1/3)*1.5);
- }},
- {name:'ENACT',field:['Neuro-symbolic reasoning · CPU','Raisonnement neuro-symbolique · CPU'],
- text:['ENACT studies how a CPU-based agent can turn a sentence into an inspectable graph of roles. One experimental policy runs two decoders: when their readings disagree, it abstains. Follow the two readings of the same input as they converge on a decision.','ENACT étudie comment un agent sur CPU peut transformer une phrase en un graphe de rôles inspectable. Une politique expérimentale compare deux décodages : en cas de désaccord, elle s’abstient. Suivez les deux lectures d’une même entrée jusqu’à la décision.'],
- steps:[['One sentence','Two candidate readings','Disagreement → abstain'],['Une phrase','Deux lectures candidates','Désaccord → abstention']],
- draw(g,t){
-  const upper=[[18,58],[64,58],[108,31],[165,31],[211,58],[253,58]];
-  const lower=[[18,58],[64,58],[108,85],[165,85],[211,58],[253,58]];
-  g.line(upper);g.line(lower);g.label('A → B',104,23);g.label('B → A',104,107);
-  g.travel(upper,t);g.travel(lower,t);g.label('?',243,45);
- }},
- {name:'AIDGE Hardware Lab',field:['Embedded vision · ASYGN','Vision embarquée · ASYGN'],url:'AIDGE',
- text:['The hardware lab follows a synthetic camera feed through tracking and counting. Watch the centre of the box: a track increments the counter once when it crosses the line. Hardware measurements are a separate stage of the project.','Le banc d’essai suit une scène synthétique, de la caméra au comptage. Observez le centre du cadre : le passage de la ligne incrémente une fois le compteur pour cette trajectoire. Les mesures sur carte constituent une autre étape du projet.'],
- steps:[['Acquire a track','Approach the line','Crossing counted'],['Acquisition de la cible','Approche de la ligne','Franchissement compté']],
- draw(g,t){const x=32+207*t;g.line([[170,15],[170,104]]);g.rect(x-13,39,26,41);g.dot(x,56,4);g.label('Σ '+Number(x>=170),210,24);}},
+  const pass=(t*2)%1,y=t<0.5?30:85;
+  for(const lane of [30,85]){
+   g.line([[26,lane],[60,lane],[104,57],[152,57],[205,lane],[250,lane]]);
+   g.rect(243,lane-9,16,18);
+  }
+  g.label(tr('shared rule','règle commune'),74,22);
+  g.label('A',9,35);g.label('B',9,90);
+  g.travel([[26,y],[60,y],[104,57],[152,57],[205,y],[250,y]],pass);
+ },
+ captionPhase(t){return (t*2)%1}},
  {name:'AlgoArena',field:['Optimisation · Edge / Fog / Cloud','Optimisation · Edge / Fog / Cloud'],
  text:['Built by AST and RCT, this studio compares scheduling and optimisation methods. In this miniature, a candidate is discarded when another uses less time and less energy. The remaining points show why several answers can be worth keeping.','Développé par AST et RCT, ce studio compare des méthodes d’optimisation et d’ordonnancement. Ici, une solution est écartée si une autre prend moins de temps et consomme moins d’énergie. Plusieurs compromis peuvent ainsi subsister.'],
  steps:[['Compare candidates','Mark dominated points','Keep the Pareto front'],['Comparer les solutions','Repérer les points dominés','Garder le front de Pareto']],
@@ -57,7 +49,7 @@ function paintProject(canvas,note,t){
  rect(x,y,w,h){ctx.strokeStyle=color('trace');ctx.strokeRect(x,y,w,h)},
  label(v,x,y){ctx.fillStyle=color('ink');ctx.fillText(v,x,y)}
  };
- const stage=Math.min(2,Math.floor(t*3));
+ const stage=Math.floor(3*(note.captionPhase?note.captionPhase(t):t));
  note.draw(g,t,stage);
  // Dissolve the completed diagram into its starting pose at the loop boundary.
  if(t>0.92){
