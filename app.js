@@ -39,7 +39,10 @@ function render(){
  $('subjects').setAttribute('aria-label',tr('Choose an experiment','Choisir une expérience'));
  $('subjects').replaceChildren(...labs.map((l,i)=>{const b=document.createElement('button');b.textContent=l[fr?1:0];b.setAttribute('aria-pressed',i===active);b.setAttribute('aria-controls','plot lesson');b.onclick=()=>{labClock.reset();active=i;startLab();render();$('subjects').children[i].focus()};return b}));
  $('peer').textContent=tr('Peer-reviewed article','Article de recherche');$('paperBody').textContent=tr('A workflow can finish sooner on a faster machine and still lose time moving its inputs there. ADARE uses the state of the Pareto search to choose its next optimisation operator. The study considers four objectives and workflows of up to 3,000 tasks.','Une machine plus rapide peut faire gagner du temps sur le calcul et en perdre sur le transfert des données. ADARE utilise l’état de la recherche de Pareto pour choisir son prochain opérateur d’optimisation. L’étude porte sur quatre objectifs et des workflows allant jusqu’à 3 000 tâches.');
- $('paperLinks').innerHTML='<a href="'+doi+'">'+tr('Paper','Article')+' ↗</a><a href="'+archive+'">'+tr('Code & data','Code et données')+' ↗</a><button id="copy">'+tr('Copy citation','Copier la citation')+'</button><span id="feedback" role="status"></span>';
+ const shareActive=Date.now()<Date.parse('2027-01-09T00:00:00Z');
+ const articleUrl=shareActive?'https://authors.elsevier.com/a/1o8cr7sfCTSOmC':doi;
+ const articleLabel=shareActive?tr('Free full text through 8 Jan 2027','Texte intégral gratuit jusqu’au 8 janv. 2027 inclus'):tr('Paper','Article');
+ $('paperLinks').innerHTML='<a href="'+articleUrl+'">'+articleLabel+' ↗</a><a href="'+archive+'">'+tr('Code & data','Code et données')+' ↗</a><button id="copy">'+tr('Copy citation','Copier la citation')+'</button><span id="feedback" role="status"></span>';
  $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(citation);$('feedback').textContent=tr('Copied.','Copiée.')}catch{$('feedback').textContent=citation}};
  $('projectsTitle').textContent=tr('Project notes','Carnet de projets');
  renderProjects();
