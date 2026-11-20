@@ -8,15 +8,6 @@ const repo='https://github.com/rolln7drktayau/';
 const doi='https://doi.org/10.1016/j.swevo.2026.102575';
 const archive='https://doi.org/10.5281/zenodo.23450772';
 const citation='Tayo, R. C., & Yassa, S. (2026). ADARE: '+document.querySelector('.publication h3').textContent+'. Swarm and Evolutionary Computation, 111, 102575. '+doi;
-const studies=[
- ['AXON-1','C11 · Hyperdimensional computing','C11 · Calcul hyperdimensionnel','I am exploring how an agent written in C11 can retrieve a memory and explain a decision on a small machine. The prototype combines hyperdimensional representations, Tsetlin-inspired rules and an asynchronous processing loop.','Je cherche comment un agent écrit en C11 peut retrouver un souvenir et expliquer une décision sur une petite machine. Le prototype associe représentations hyperdimensionnelles, règles inspirées de Tsetlin et boucle de traitement asynchrone.'],
- ['AIDGE Hardware Lab','Embedded vision · Simulation','Vision embarquée · Simulation','A browser workbench for following a synthetic image through a counting pipeline. The illustrative 3D board and the hardware profiles make it possible to discuss which observations still require a physical board.','Un banc d’essai pour suivre une image synthétique dans une chaîne de comptage. La carte 3D illustrative et les profils matériels permettent de distinguer les observations simulées de celles qui exigent une mesure sur carte.','AIDGE'],
- ['RAUCB','Embedded Linux · Remote updates','Linux embarqué · Mise à jour distante','A Raspberry Pi running a Qt client receives an update from a Flask service over TLS. A checksum lets the client check the downloaded artifact. Docker cross-compilation brings the build and the target into the same update workflow.','Un client Qt sur Raspberry Pi reçoit une mise à jour depuis un service Flask via TLS. Une somme de contrôle vérifie le fichier téléchargé. La compilation croisée sous Docker relie la construction du logiciel à son déploiement sur la cible.','RAUCB'],
- ['Thermal monitor','Yocto · Raspberry Pi 4','Yocto · Raspberry Pi 4','A custom Poky image starts a monitoring service at boot, publishes CPU readings over MQTT and stops intensive work above a thermal threshold. The interesting boundary runs between reporting a measurement and acting on it.','Une image Poky personnalisée lance un service au démarrage, publie les mesures du processeur via MQTT et arrête les tâches intensives au-delà d’un seuil thermique. La même mesure sert à observer la carte et à la protéger.','RaspBerry_Pi_4_GPIO_Yocto_Poky'],
- ['Mobile robotics','ROS 2 · C++ · Gazebo','ROS 2 · C++ · Gazebo','How does a wheeled robot follow a wall with only local measurements? C++ nodes translate laser scans into velocity commands. Gazebo provides a repeatable setting for comparing obstacle avoidance, wall following and Braitenberg behaviours.','Comment suivre un mur avec des mesures locales ? Des nœuds C++ convertissent les relevés laser en consignes de vitesse. Gazebo permet de comparer l’évitement d’obstacles, le suivi de mur et les comportements de Braitenberg dans une scène reproductible.','ROS2'],
- ['LoRa sensor station','ESP32 · Instrumentation','ESP32 · Instrumentation','A HELTEC WiFi LoRa 32 V3 gathers environmental and optical sensor readings. The same measurements can be inspected on the OLED display, transmitted by radio or served on a local web page.','Une HELTEC WiFi LoRa 32 V3 collecte les mesures de capteurs environnementaux et optiques. On peut lire ces mesures sur l’écran OLED, les transmettre par radio ou les consulter sur une page web locale.','IOT_Lab_Project'],
- ['AlgoArena','Optimisation · Simulation','Optimisation · Simulation','A simulator in development for comparing optimisation and scheduling methods. A question guiding the work is how much detail a simulation needs before one can trust the ranking of two strategies.','Un simulateur en développement pour comparer des méthodes d’optimisation et d’ordonnancement. Une question guide le travail : quel degré de détail faut-il simuler pour pouvoir se fier au classement de deux stratégies ?']
-];
 const positions=[
  ['2026 →','CY Tech','Teaching artificial intelligence to engineering students specialising in embedded systems.','Enseignement de l’intelligence artificielle aux élèves ingénieurs en systèmes embarqués.'],
  ['2026 →','Fujitsu / Neurones IT','Cloud and infrastructure engineering for client environments.','Ingénierie cloud et infrastructure pour des environnements clients.'],
@@ -43,20 +34,39 @@ function render(){
  $('byline').textContent=tr('Engineering & research','Ingénierie et recherche');
  $('lead').textContent=tr('I teach embedded AI at CY Tech and work on cloud infrastructure. My research asks where a computation should run, and what it costs to put it there.','J’enseigne l’IA embarquée à CY Tech et je travaille sur les infrastructures cloud. Ma recherche porte sur une question : où exécuter un calcul et à quel coût ?');
  $('see').textContent=tr('Explore my projects ↓','Découvrir mes projets ↓');
+ $('choose').textContent=tr('Choose a field to experiment with','Choisissez un domaine à explorer');
+ updateLoopButton();
  $('subjects').setAttribute('aria-label',tr('Choose an experiment','Choisir une expérience'));
- $('subjects').replaceChildren(...labs.map((l,i)=>{const b=document.createElement('button');b.textContent=l[fr?1:0];b.setAttribute('aria-pressed',i===active);b.setAttribute('aria-controls','plot lesson');b.onclick=()=>{active=i;render();$('subjects').children[i].focus()};return b}));
+ $('subjects').replaceChildren(...labs.map((l,i)=>{const b=document.createElement('button');b.textContent=l[fr?1:0];b.setAttribute('aria-pressed',i===active);b.setAttribute('aria-controls','plot lesson');b.onclick=()=>{stopLab();active=i;render();$('subjects').children[i].focus()};return b}));
  $('peer').textContent=tr('Peer-reviewed article','Article de recherche');$('paperBody').textContent=tr('A workflow can finish sooner on a faster machine and still lose time moving its inputs there. ADARE uses the state of the Pareto search to choose its next optimisation operator. The study considers four objectives and workflows of up to 3,000 tasks.','Une machine plus rapide peut faire gagner du temps sur le calcul et en perdre sur le transfert des données. ADARE utilise l’état de la recherche de Pareto pour choisir son prochain opérateur d’optimisation. L’étude porte sur quatre objectifs et des workflows allant jusqu’à 3 000 tâches.');
  $('paperLinks').innerHTML='<a href="'+doi+'">'+tr('Paper','Article')+' ↗</a><a href="'+archive+'">'+tr('Code & data','Code et données')+' ↗</a><button id="copy">'+tr('Copy citation','Copier la citation')+'</button><span id="feedback" role="status"></span>';
  $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(citation);$('feedback').textContent=tr('Copied.','Copiée.')}catch{$('feedback').textContent=citation}};
  $('projectsTitle').textContent=tr('Project notes','Carnet de projets');
- const opened=[...$('projects').children].map(d=>d.open);
- $('projects').innerHTML=studies.map(([name,en,frTag,body,bodyFr,url],i)=>'<details '+(opened[i]?'open':'')+'><summary><span class="pname">'+(fr?({'Thermal monitor':'Suivi thermique','Mobile robotics':'Robotique mobile','LoRa sensor station':'Station de mesure LoRa'}[name]||name):name)+'</span><span class="kind">'+tr(en,frTag)+'</span></summary><div class="detail"><p>'+tr(body,bodyFr)+'</p>'+(url?'<a href="'+repo+url+'">'+tr('Source repository','Dépôt du projet')+' ↗</a>':'')+'</div></details>').join('');
+ renderProjects();
  $('careerTitle').textContent=tr('Experience & education','Expérience et formation');$('career').innerHTML=positions.map(([date,org,en,f])=>'<div class="experience"><span class="date">'+date+'</span><div><h3>'+org+'</h3><p>'+tr(en,f)+'</p></div></div>').join('');
  const lab=labs[active];$('plate').textContent=tr('Experiment / ','Expérience / ')+lab[fr?1:0];$('instrumentTitle').textContent=lab[fr?3:2];$('parameter').textContent=lab[fr?5:4];Object.assign($('value'),{min:lab[6],max:lab[7],value:values[active]});draw();
 }
 $('lang').onclick=()=>{fr=!fr;remember('rct-language',fr?'fr':'en');render()};
 $('theme').onclick=()=>{light=!light;remember('rct-theme',light?'light':'dark');render()};
-$('value').oninput=e=>{values[active]=Number(e.target.value);draw()};
+let labTimer=null;
+function updateLoopButton(){
+ $('loop').textContent=labTimer===null?tr('▷ Play on loop','▷ Lire en boucle'):tr('Ⅱ Pause','Ⅱ Pause');
+ $('loop').setAttribute('aria-pressed',labTimer!==null);
+}
+function stopLab(){clearInterval(labTimer);labTimer=null;updateLoopButton()}
+$('loop').onclick=()=>{
+ if(labTimer!==null){stopLab();return}
+ let direction=1;
+ const [, , , , , ,min,max]=labs[active];
+ labTimer=setInterval(()=>{
+  if(document.hidden)return;
+  if(values[active]>=max)direction=-1;
+  if(values[active]<=min)direction=1;
+  values[active]+=direction;$('value').value=values[active];draw();
+ },Math.max(85,Math.round(4200/(max-min))));
+ updateLoopButton();
+};
+$('value').oninput=e=>{stopLab();values[active]=Number(e.target.value);draw()};
 
 function draw(){
  const canvas=$('plot'),ctx=canvas.getContext('2d'),css=getComputedStyle(document.documentElement);
