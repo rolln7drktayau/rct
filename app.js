@@ -48,25 +48,26 @@ function render(){
 }
 $('lang').onclick=()=>{fr=!fr;remember('rct-language',fr?'fr':'en');render()};
 $('theme').onclick=()=>{light=!light;remember('rct-theme',light?'light':'dark');render()};
-let labTimer=null;
+// Traverse the current range continuously, bouncing at both limits.
+let labOrigin=0;
+const labClock=animationClock(10000,phase=>{
+ const min=labs[active][6],span=labs[active][7]-min;
+ const u=((labOrigin-min)/span+2*phase)%2;
+ const position=min+span*(1-Math.abs(1-u));
+ values[active]=position;
+ $('value').value=Math.round(position);
+ draw();
+});
 function updateLoopButton(){
- $('loop').textContent=labTimer===null?tr('▷ Play on loop','▷ Lire en boucle'):tr('Ⅱ Pause','Ⅱ Pause');
- $('loop').setAttribute('aria-pressed',labTimer!==null);
+ $('loop').textContent=labClock.playing?tr('Ⅱ Pause','Ⅱ Pause'):tr('▷ Play on loop','▷ Lire en boucle');
+ $('loop').setAttribute('aria-pressed',labClock.playing);
 }
-function stopLab(){clearInterval(labTimer);labTimer=null;updateLoopButton()}
+function stopLab(){labClock.reset();labOrigin=values[active];updateLoopButton()}
 $('loop').onclick=()=>{
- if(labTimer!==null){stopLab();return}
- let direction=1;
- const [, , , , , ,min,max]=labs[active];
- labTimer=setInterval(()=>{
-  if(document.hidden)return;
-  if(values[active]>=max)direction=-1;
-  if(values[active]<=min)direction=1;
-  values[active]+=direction;$('value').value=values[active];draw();
- },Math.max(85,Math.round(4200/(max-min))));
- updateLoopButton();
+ if(labClock.phase===0&&!labClock.playing)labOrigin=values[active];
+ labClock.toggle();updateLoopButton();
 };
-$('value').oninput=e=>{stopLab();values[active]=Number(e.target.value);draw()};
+$('value').oninput=e=>{values[active]=Number(e.target.value);stopLab();draw()};
 
 function draw(){
  const canvas=$('plot'),ctx=canvas.getContext('2d'),css=getComputedStyle(document.documentElement);
@@ -76,37 +77,51 @@ function draw(){
  function line(points,c,width=1){ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.strokeStyle=c;ctx.lineWidth=width;ctx.stroke()}
  function label(t,x,y,c=muted){ctx.fillStyle=c;ctx.fillText(t,x,y)}
  function box(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h)}
- const v=values[active];let lesson='',reading=String(v);
+ const position=values[active],v=Math.round(position),phase=labClock.phase;let lesson='',reading=String(v);
  if(active===0){
-  const height=(x,y)=>[-v/2,v/2].reduce((a,s)=>{const r=Math.hypot(x-s,y);return a+Math.cos(Math.PI*r)/(1+.17*r)},0);
+  const height=(x,y)=>[-position/2,position/2].reduce((a,s)=>{const r=Math.hypot(x-s,y);return a+Math.cos(Math.PI*r)/(1+.17*r)},0);
   const point=(x,y)=>[400+33*x+16*y,189+7*y-4*x-height(x,y)*48];
   for(let j=-40;j<=40;j++){const y=j/5;const pts=[];for(let i=-100;i<=100;i++)pts.push(point(i/12,y));line(pts,j%5===0?accent:trace,j%5===0?1.6:.85)}
-  reading='d = '+(v/2)+' λ';
+  reading='d = '+Number((position/2).toFixed(2))+' λ';
   lesson=tr('Two in-phase point sources emit the same wave. Move them apart and follow the ridges. Where a crest meets a trough, the displacement cancels.','Deux sources en phase émettent la même onde. Éloignez-les et suivez les crêtes. Là où une crête rencontre un creux, les déplacements se compensent.');
  }else if(active===1){
-  const n=2**v;const wave=x=>.5+.41*Math.sin(x*Math.PI*3.3);const p=(x,y)=>[58+690*x,300-y*240];
+  const n=2**v;const wave=x=>.5+.41*Math.sin(x*Math.PI*3.3-2*Math.PI*phase);const p=(x,y)=>[58+690*x,300-y*240];
   for(let k=0;k<=4;k++)line([p(0,k/4),p(1,k/4)],grid);
   line(Array.from({length:301},(_,i)=>p(i/300,wave(i/300))),trace,3);
   const pts=[];for(let i=0;i<45;i++){const q=Math.round(wave(i/45)*(n-1))/(n-1);pts.push(p(i/45,q),p((i+1)/45,q))}line(pts,accent,3);
   label('3.3 V',4,54);label('0 V',4,306);label(tr('time →','temps →'),640,340);
   reading=v+' bits';lesson=tr('The green input is sampled 45 times. The orange output has '+n+' possible levels. More bits reduce the vertical rounding error; the sampling interval stays fixed.','Le signal vert est échantillonné 45 fois. La sortie orange dispose de '+n+' niveaux. Ajouter des bits réduit l’erreur d’arrondi en tension ; l’intervalle de mesure reste fixe.');
  }else if(active===2){
-  const loads=Array(v).fill(0),times=[5,3,6,2,4,3];
-  const scale=670/23;for(let i=0;i<v;i++){label('W'+(i+1),12,80+i*49);line([[66,86+i*49],[748,86+i*49]],grid)}
-  times.forEach((duration,i)=>{const worker=loads.indexOf(Math.min(...loads));const x=68+loads[worker]*scale,y=55+worker*49;box(x,y,duration*scale-3,33,i%2?trace:accent);label(String.fromCharCode(65+i),x+10,y+23,color('bg'));loads[worker]+=duration});
-  label(tr('time →','temps →'),600,334);const end=Math.max(...loads);lesson=tr('Six independent tasks go to the first free worker in letter order. Completion time is '+end+' ticks. Try four workers, then five. Which task sets the lower bound?','Six tâches indépendantes vont à la première unité libre, par ordre alphabétique. Durée totale : '+end+' unités de temps. Essayez quatre unités de calcul puis cinq. Quelle tâche fixe la borne inférieure ?');
+  const times=[5,3,6,2,4,3],scale=670/23;
+  function schedule(workers){
+   const loads=Array(workers).fill(0);
+   const tasks=times.map(duration=>{
+    const lane=loads.indexOf(Math.min(...loads)),start=loads[lane];
+    loads[lane]+=duration;return {lane,start};
+   });
+   return {tasks,end:Math.max(...loads)};
+  }
+  const low=Math.floor(position),mix=position-low,first=schedule(low),next=schedule(Math.min(5,low+1));
+  for(let i=0;i<Math.ceil(position);i++){ctx.globalAlpha=i<low?1:mix;label('W'+(i+1),12,80+i*49);line([[66,86+i*49],[748,86+i*49]],grid)}
+  ctx.globalAlpha=1;
+  times.forEach((duration,i)=>{
+   const a=first.tasks[i],b=next.tasks[i],x=68+(a.start+(b.start-a.start)*mix)*scale,y=55+(a.lane+(b.lane-a.lane)*mix)*49;
+   box(x,y,duration*scale-3,33,i%2?trace:accent);label(String.fromCharCode(65+i),x+10,y+23,color('bg'));
+  });
+  label(tr('time →','temps →'),600,334);const end=mix<.5?first.end:next.end;lesson=tr('Six independent tasks go to the first free worker in letter order. Completion time is '+end+' ticks. Try four workers, then five. Which task sets the lower bound?','Six tâches indépendantes vont à la première unité libre, par ordre alphabétique. Durée totale : '+end+' unités de temps. Essayez quatre unités de calcul puis cinq. Quelle tâche fixe la borne inférieure ?');
  }else if(active===3){
-  for(let i=0;i<64;i++){const bit=((i*53+11)%67)%2,flip=(i*37)%64<v,x=60+i%16*43,y=34+Math.floor(i/16)*71;
-   box(x,y,34,22,bit?ink:grid);box(x,y+25,34,22,(bit^flip)?ink:grid);if(flip)box(x,y+49,34,3,accent)}
+  for(let i=0;i<64;i++){const bit=((i*53+11)%67)%2,amount=Math.max(0,Math.min(1,position-(i*37)%64)),x=60+i%16*43,y=34+Math.floor(i/16)*71;
+   box(x,y,34,22,bit?ink:grid);box(x,y+25,34,22,bit?ink:grid);box(x,y+25,34*amount,22,bit?grid:ink);box(x,y+49,34*amount,3,accent)}
   label(tr('stored / recalled','stocké / rappelé'),60,340);reading=v+' / 64';lesson=tr('Each pair shows one stored bit above its noisy copy. Orange marks a mismatch. Hamming distance counts '+v+' differences; '+(64-v)+' bits still agree. Binary hypervectors use this comparison at much larger scales.','Chaque paire montre un bit mémorisé au-dessus de sa copie bruitée. L’orange signale un écart. La distance de Hamming compte '+v+' différences ; '+(64-v)+' bits concordent. Les hypervecteurs binaires exploitent cette comparaison à plus grande échelle.');
  }else{
   const sequence='AGCTTACGACGT';const other=[...sequence].map((c,i)=>(i*5)%12<v?'ACGT'[('ACGT'.indexOf(c)+1)%4]:c);
   const step=21,left=281,top=58;for(let i=0;i<12;i++){
    label(sequence[i],left+i*step-5,top-18);label(other[i],left-28,top+i*step+6);
-   for(let j=0;j<12;j++){const x=left+j*step,y=top+i*step;box(x-3,y-3,6,6,grid);if(sequence[j]===other[i])box(x-6,y-6,12,12,i===j?accent:trace)}
+   for(let j=0;j<12;j++){const x=left+j*step,y=top+i*step;box(x-3,y-3,6,6,grid);const f=Math.max(0,Math.min(1,position-(i*5)%12));const alt='ACGT'[('ACGT'.indexOf(sequence[i])+1)%4];const size=12*((sequence[j]===sequence[i]?1-f:0)+(sequence[j]===alt?f:0));if(size)box(x-size/2,y-size/2,size,size,i===j?accent:trace)}
   }
   reading=v+' / 12';lesson=tr('A dot joins matching letters in two short teaching sequences. Read the orange diagonal: '+(12-v)+' aligned bases match. Green dots reveal repeated letters at other positions.','Un point relie deux lettres identiques dans ces courtes séquences pédagogiques. La diagonale orange compte '+(12-v)+' bases alignées identiques. Les points verts révèlent des répétitions à d’autres positions.');
  }
+ if($('reading').textContent===reading&&$('lesson').textContent===lesson)return;
  $('reading').textContent=reading;$('lesson').textContent=lesson;canvas.setAttribute('aria-label',$('instrumentTitle').textContent+'. '+lesson);$('value').setAttribute('aria-valuetext',reading);
 }
 render();
